@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+
+"""
+Seqlib class project for 6-scientific-python
+"""
+
 import numpy as np
 import pandas as pd
     
@@ -7,17 +13,12 @@ class Seqlib:
         self.ninds = ninds
         self.nsites = nsites
         self.seqs = self.simulate()
-        self.seqlib = __init__()
         self.arr = arr
         self.maf = maf
-        self.filter = self.filter_missing(), filter_maf()
-    
-    def mutate(base):
-        diff = set("ACTG") - set(base)
-        return np.random.choice(list(diff))
+        self.filter = self.filter_missing(), self.filter_maf()
     
     def simulate(self):  #ninds is a number of rows and nsites is a number of columns
-        
+        pass 
         """
         The function simulate generate variable sequence data by creating mutations and sites with missing data. 
         The parameters used (ninds = 6, nsites = 15) construct six 15-base long nuclotide sequence.
