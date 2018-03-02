@@ -21,25 +21,24 @@ class Seqlib:
         pass 
         """
         The function simulate generate variable sequence data by creating mutations and sites with missing data. 
-        The parameters used (ninds = 6, nsites = 15) construct six 15-base long nuclotide sequence.
         """
         
-        #choose a random letter from the list "ACGT" for 15 times 
+        #choose a random letter from the list "ACGT" for a number of times indicated in nsites
         oseq = np.random.choice(list("ACGT"), size=self.nsites) 
     
-        #construct an array by creating 6 rows of oseq
+        #construct an array by creating rows of oseq
         arr = np.array([oseq for i in range(self.ninds)]) 
     
         #Binomial sampling throught the array where the probability of one outcome is 0.1 (p=0.1). 
-        # This will return an array of binary integers  
+        #This will return an array of binary integers  
         muts = np.random.binomial(1, 0.1, (self.ninds, self.nsites)) 
     
-        for col in range(self.nsites): #nsite is 15 this case. for loop goes through column 1 to 15
-            newbase = mutate(arr[0, col])   # creating a random mutation in the coulmn 1(to 15 throught the interation). 
-            mask = muts[:, col].astype(bool) #muts flips a coin to assign outcome in binary integers(e.g. 0 or 1) which will 
-                                            #then be converted to a boolean type using the astype() call.
-            arr[:, col][mask] = newbase    # the arr[:,col] part pulls out a full column from the array. Then, the [mask] index pulls 
-                                            #out some indices (defined above sell) from that column and stores in newbase
+        for col in range(self.nsites):      
+            newbase = mutate(arr[0, col])    # creating a random mutation in the coulmns throught the interation. 
+            mask = muts[:, col].astype(bool) # muts flips a coin to assign outcome in binary integers(e.g. 0 or 1) which will 
+                                                # then be converted to a boolean type using the astype() call.
+            arr[:, col][mask] = newbase      # the arr[:,col] part pulls out a full column from the array. Then, the [mask] index pulls 
+                                                # out some indices (defined above sell) from that column and stores in newbase
     
         # generate random missing data by using binomial sampling with probability of 0.1
         missing = np.random.binomial(1, 0.1, (self.ninds, self.nsites)) 
@@ -55,7 +54,7 @@ class Seqlib:
         # freqmissing is obtained by deviding the numner of N within the row by length of columns (shape[0]).
         freqmissing = np.sum(self.arr == "N", axis=0) / self.arr.shape[0]    
     
-        #return rows with missing frequency less than 0.1 
+        #return rows with missing frequency less than maxfreq 
         return self.arr[:, freqmissing <= maxfreq]  
     
     def filter_maf(self):
@@ -97,7 +96,7 @@ class Seqlib:
         # number of columns with some variability 
         var = np.any(self.arr != self.arr[0], axis=0).sum()
     
-        # find variable sites: substract the number of variant sites from the total number of columns (15)
+        # find variable sites: substract the number of variant sites from the total number of columns
         inv = self.arr.shape[1] - var
     
         #Use Pandas to return all the values 
