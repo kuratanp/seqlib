@@ -9,12 +9,10 @@ import pandas as pd
     
 class Seqlib:
 
-    def __init__(self, ninds, nsites, arr, maxfreq, minfreq):
+    def __init__(self, ninds, nsites, maxfreq, minfreq):
         self.ninds = ninds
         self.nsites = nsites
         self.seqs = self.simulate()
-        self.arr = arr
-        self.maf = maf
         self.filter = self.filter_missing(), self.filter_maf()
     
     def simulate(self):  #ninds is a number of rows and nsites is a number of columns
