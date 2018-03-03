@@ -1,4 +1,4 @@
-# helloworld
+# seqlib
 
 ### Installation 
 Clone the repo and use pip to install it. 
