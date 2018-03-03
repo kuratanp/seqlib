@@ -29,12 +29,12 @@ class Seqlib:
         #construct an array by creating rows of oseq
         arr = np.array([oseq for i in range(self.ninds)]) 
     
-        #Binomial sampling throught the array where the probability of one outcome is 0.1 (p=0.1). 
+        #Binomial sampling through the array where the probability of one outcome is 0.1 (p=0.1). 
         #This will return an array of binary integers  
         muts = np.random.binomial(1, 0.1, (self.ninds, self.nsites)) 
     
         for col in range(self.nsites):      
-            newbase = mutate(arr[0, col])    # creating a random mutation in the coulmns throught the interation. 
+            newbase = mutate(arr[0, col])    # creating a random mutation in the coulmns through the interation. 
             mask = muts[:, col].astype(bool) # muts flips a coin to assign outcome in binary integers(e.g. 0 or 1) which will 
                                                 # then be converted to a boolean type using the astype() call.
             arr[:, col][mask] = newbase      # the arr[:,col] part pulls out a full column from the array. Then, the [mask] index pulls 
@@ -71,10 +71,10 @@ class Seqlib:
         # store a copy to avoid modifying the original array 'arr'
         maf = freqs.copy()
     
-        #subselect sites (columns) with major freq (>0.5) and modify to be 1-value (e.g 0.875 to 0.125)
+        # subselect sites (columns) with major freq (>0.5) and modify to be 1-value (e.g 0.875 to 0.125)
         maf[maf > 0.5] = 1 - maf[maf > 0.5]
     
-        # print only columns of minor allele frequencies greater than the minimum frequency of 0.1 (sequeces with too little mutations are eliminated here)
+        # print only columns of minor allele frequencies greater than the minimum frequency (sequeces with too little mutations are eliminated here)
         return self.arr[:, maf > minfreq]  #print all row 
   
     
