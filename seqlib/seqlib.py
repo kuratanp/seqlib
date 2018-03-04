@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
 """
-Seqlib library for class project: 6-scientific-python
+seqlib library for class assignment
 """
+
 import copy
 import numpy as np
 import pandas as pd
-    
-class Seqlib:
 
+
+class Seqlib:
     """
     A seqlib object for class.
     """
@@ -18,47 +19,32 @@ class Seqlib:
         self.ninds = ninds
         self.nsites = nsites
         self.seqs = self._simulate()
-        
-        ## store maf of the full seq array
-        self.maf = self._get_maf()   
 
-   
+        ## store maf of the full seq array
+        self.maf = self._get_maf()
+
+
     ## private functions used only during init -----
     def _mutate(self, base):
         "converts a base to another base"
         diff = set("ACTG") - set(base)
-        return np.random.choice(list(diff)) 
-   
+        return np.random.choice(list(diff))
 
-    def _simulate(self):  #ninds is a number of rows and nsites is a number of columns
-       
-        """
-        The function simulate generate variable sequence data by creating mutations and sites with missing data. 
-        """
-        
+
+    def _simulate(self):
         "returns a random array of DNA bases with mutations"
-        oseq = np.random.choice(list("ACGT"), size=self.nsites) 
-    
-        #construct an array by creating rows of oseq
-        arr = np.array([oseq for i in range(self.ninds)]) 
-    
-        #Binomial sampling through the array where the probability of one outcome is 0.1 (p=0.1). 
-        #This will return an array of binary integers  
-        muts = np.random.binomial(1, 0.1, (self.ninds, self.nsites)) 
-    
-        for col in range(self.nsites):      
-            newbase = self._mutate(arr[0, col])    # creating a random mutation in the coulmns through the interation. 
-            mask = muts[:, col].astype(bool) # muts flips a coin to assign outcome in binary integers(e.g. 0 or 1) which will 
-                                                # then be converted to a boolean type using the astype() call.
-            arr[:, col][mask] = newbase      # the arr[:,col] part pulls out a full column from the array. Then, the [mask] index pulls 
-                                                # out some indices (defined above sell) from that column and stores in newbase
-    
-        # generate random missing data by using binomial sampling with probability of 0.1
-        missing = np.random.binomial(1, 0.1, (self.ninds, self.nsites)) 
-        #indicate missing data as "N"
-        arr[missing.astype(bool)] = "N"  
+        oseq = np.random.choice(list("ACGT"), size=self.nsites)
+        arr = np.array([oseq for i in range(self.ninds)])
+        muts = np.random.binomial(1, 0.1, (self.ninds, self.nsites))
+        for col in range(self.nsites):
+            newbase = self._mutate(arr[0, col])
+            mask = muts[:, col].astype(bool)
+            arr[:, col][mask] = newbase
+        missing = np.random.binomial(1, 0.1, (self.ninds, self.nsites))
+        arr[missing.astype(bool)] = "N"
         return arr
-        
+
+
     def _get_maf(self):
         "returns the maf of the full seqarray while not counting Ns"
         ## init an array to fill and iterate over columns
@@ -82,17 +68,18 @@ class Seqlib:
                 maf[col] = freq
         return maf
 
-
-    def _filter_missing(self, maxmissing): 
-          
+        
+    ## private functions that are called within other functions
+    def _filter_missing(self, maxmissing):
         "returns a boolean filter True for columns with Ns > maxmissing"
-        freqmissing = np.sum(self.seq == "N", axis=0) / self.seq.shape[0]    
+        freqmissing = np.sum(self.seqs == "N", axis=0) / self.seqs.shape[0]
         return freqmissing > maxmissing
-    
+
+
     def _filter_maf(self, minmaf):
-    
         "returns a boolean filter True for columns with maf < minmaf"
         return self.maf < minmaf
+
 
     ## public functions -----
     def filter(self, minmaf, maxmissing):
@@ -109,7 +96,34 @@ class Seqlib:
         filter2 = self._filter_missing(maxmissing)
         fullfilter = filter1 + filter2
         return self.seqs[:, np.invert(fullfilter)]
-    
+
+
+    def filter_seqlib(self, minmaf, maxmissing):
+        """
+        Applies maf and missing filters to the array and returns a copy 
+        of the seqlib object where the .seqs array has been filtered
+        Parameters
+        ----------
+        minmaf: float
+            The minimum minor allele frequency. Filter columns below this.
+        maxmissing: float
+            The maximum prop. missing data. Filter columns with prop Ns > this.
+        """
+        ## apply filters to get new array size
+        newseqs = self.filter(minmaf, maxmissing)
+
+        ## make a new copy of the seqlib object
+        newself = copy.deepcopy(self)       
+        newself.__init__(newseqs.shape[0], newseqs.shape[1]) 
+
+        ## store the array (overwrite it)
+        newself.seqs = newseqs
+
+        ## call the _get_maf to match new array
+        newself._get_maf()
+        return newself
+
+
     def calculate_statistics(self):
         """ 
         Returns a dataframe of statistics on the seqs array. The earlier 
