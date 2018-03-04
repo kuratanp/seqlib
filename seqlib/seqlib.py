@@ -1,27 +1,38 @@
 #!/usr/bin/env python
 
 """
-Seqlib class project for 6-scientific-python
+Seqlib library for class project: 6-scientific-python
 """
-
+import copy
 import numpy as np
 import pandas as pd
     
 class Seqlib:
 
-    def __init__(self, ninds, nsites, maxfreq, minfreq):
+    def __init__(self, ninds, nsites):
+
+        ## generate the full sequence array
         self.ninds = ninds
         self.nsites = nsites
         self.seqs = self.simulate()
-        self.filter = self.filter_missing(), self.filter_maf()
-    
+        
+        ## store maf of the full seq array
+        self.maf = self._get_maf()       
+   
+    ## private functions used only during init -----
+    def _mutate(self, base):
+        "converts a base to another base"
+        diff = set("ACTG") - set(base)
+        return np.random.choice(list(diff)) 
+   
+
     def simulate(self):  #ninds is a number of rows and nsites is a number of columns
-        pass 
+       
         """
         The function simulate generate variable sequence data by creating mutations and sites with missing data. 
         """
         
-        #choose a random letter from the list "ACGT" for a number of times indicated in nsites
+        "returns a random array of DNA bases with mutations"
         oseq = np.random.choice(list("ACGT"), size=self.nsites) 
     
         #construct an array by creating rows of oseq
@@ -32,7 +43,7 @@ class Seqlib:
         muts = np.random.binomial(1, 0.1, (self.ninds, self.nsites)) 
     
         for col in range(self.nsites):      
-            newbase = mutate(arr[0, col])    # creating a random mutation in the coulmns through the interation. 
+            newbase = self._mutate(arr[0, col])    # creating a random mutation in the coulmns through the interation. 
             mask = muts[:, col].astype(bool) # muts flips a coin to assign outcome in binary integers(e.g. 0 or 1) which will 
                                                 # then be converted to a boolean type using the astype() call.
             arr[:, col][mask] = newbase      # the arr[:,col] part pulls out a full column from the array. Then, the [mask] index pulls 
@@ -44,38 +55,82 @@ class Seqlib:
         arr[missing.astype(bool)] = "N"  
         return arr
         
-    def filter_missing(self):  #arr is the variable seq generated using the function, simulate.
-        
+    def _get_maf(self):
+        "returns the maf of the full seqarray while not counting Ns"
+        ## init an array to fill and iterate over columns
+        maf = np.zeros(self.nsites)
+        for col in range(self.nsites):
+            ## select this column of bases
+            thiscol = self.seqs[:, col]
+
+            ## mask "N" bases and get new length
+            nmask = thiscol != "N"
+            no_n_len = np.sum(nmask)
+
+            ## mask "N" bases and get the first base
+            first_non_n_base = thiscol[nmask][0]
+
+            ## calculate maf of "N" masked bases
+            freq = np.sum(thiscol[nmask] != first_non_n_base) / no_n_len
+            if freq > 0.5:
+                maf[col] = 1 - freq
+            else:
+                maf[col] = freq
+        return maf
+
+
+    def _filter_missing(self, maxmissing): 
+          
+        "returns a boolean filter True for columns with Ns > maxmissing"
+        freqmissing = np.sum(self.seq == "N", axis=0) / self.seq.shape[0]    
+        return freqmissing > maxmissing
+    
+    def _filter_maf(self, minmaf):
+    
+        "returns a boolean filter True for columns with maf < minmaf"
+        return self.maf < minmaf
+
+    ## public functions -----
+    def filter(self, minmaf, maxmissing):
         """
-        The filter_missing function removes sequences that have more than centain frequency of missing data.
-        """  
-        # freqmissing is obtained by deviding the numner of N within the row by length of columns (shape[0]).
-        freqmissing = np.sum(self.arr == "N", axis=0) / self.arr.shape[0]    
-    
-        #return rows with missing frequency less than maxfreq 
-        return self.arr[:, freqmissing <= maxfreq]  
-    
-    def filter_maf(self):
-    
+        Applies maf and missing filters to the array 
+        Parameters
+        ----------
+        minmaf: float
+            The minimum minor allele frequency. Filter columns below this.
+        maxmissing: float
+            The maximum prop. missing data. Filter columns with prop Ns > this.
         """
-        The filter_maf function removes sequences that has too little minor allele frequencies. It uses copy becasue we do not want 
-        to make changes in the original sequences.
-        """  
+        filter1 = self._filter_maf(minmaf)
+        filter2 = self._filter_missing(maxmissing)
+        fullfilter = filter1 + filter2
+        return self.seqs[:, np.invert(fullfilter)]
     
-        # The sum of variables in each column is divided by the length of columns (shape[0]) to obtein frequency and this view 
-        # is stored in freqs. A number of variables is found by comparing the first row against the rest. 
-        freqs = np.sum(self.arr != self.arr[0], axis=0) / self.arr.shape[0] 
-    
-        # store a copy to avoid modifying the original array 'arr'
-        maf = freqs.copy()
-    
-        # subselect sites (columns) with major freq (>0.5) and modify to be 1-value (e.g 0.875 to 0.125)
-        maf[maf > 0.5] = 1 - maf[maf > 0.5]
-    
-        # print only columns of minor allele frequencies greater than the minimum frequency (sequeces with too little mutations are eliminated here)
-        return self.arr[:, maf > minfreq]  #print all row 
-  
-    
+    def filter_seqlib(self, minmaf, maxmissing):
+        """
+        Applies maf and missing filters to the array and returns a copy 
+        of the seqlib object where the .seqs array has been filtered
+        Parameters
+        ----------
+        minmaf: float
+            The minimum minor allele frequency. Filter columns below this.
+        maxmissing: float
+            The maximum prop. missing data. Filter columns with prop Ns > this.
+        """
+        ## apply filters to get new array size
+        newseqs = self.filter(minmaf, maxmissing)
+
+        ## make a new copy of the seqlib object
+        newself = copy.deepcopy(self)       
+        newself.__init__(newseqs.shape[0], newseqs.shape[1]) 
+
+        ## store the array (overwrite it)
+        newself.seqs = newseqs
+
+        ## call the _get_maf to match new array
+        newself._get_maf()
+        return newself
+
     def calculcate_statistics(self):
         """
         A. The calculcate_statistics function computes mean nucleotide diversity, mean minor allele frequency, variant sites, 
