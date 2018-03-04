@@ -9,15 +9,19 @@ import pandas as pd
     
 class Seqlib:
 
+    """
+    A seqlib object for class.
+    """
     def __init__(self, ninds, nsites):
 
         ## generate the full sequence array
         self.ninds = ninds
         self.nsites = nsites
-        self.seqs = self.simulate()
+        self.seqs = self._simulate()
         
         ## store maf of the full seq array
-        self.maf = self._get_maf()       
+        self.maf = self._get_maf()   
+
    
     ## private functions used only during init -----
     def _mutate(self, base):
@@ -26,7 +30,7 @@ class Seqlib:
         return np.random.choice(list(diff)) 
    
 
-    def simulate(self):  #ninds is a number of rows and nsites is a number of columns
+    def _simulate(self):  #ninds is a number of rows and nsites is a number of columns
        
         """
         The function simulate generate variable sequence data by creating mutations and sites with missing data. 
@@ -106,57 +110,22 @@ class Seqlib:
         fullfilter = filter1 + filter2
         return self.seqs[:, np.invert(fullfilter)]
     
-    def filter_seqlib(self, minmaf, maxmissing):
+    def calculate_statistics(self):
+        """ 
+        Returns a dataframe of statistics on the seqs array. The earlier 
+        example from the notebook had a bug where var and inv were switched.
         """
-        Applies maf and missing filters to the array and returns a copy 
-        of the seqlib object where the .seqs array has been filtered
-        Parameters
-        ----------
-        minmaf: float
-            The minimum minor allele frequency. Filter columns below this.
-        maxmissing: float
-            The maximum prop. missing data. Filter columns with prop Ns > this.
-        """
-        ## apply filters to get new array size
-        newseqs = self.filter(minmaf, maxmissing)
-
-        ## make a new copy of the seqlib object
-        newself = copy.deepcopy(self)       
-        newself.__init__(newseqs.shape[0], newseqs.shape[1]) 
-
-        ## store the array (overwrite it)
-        newself.seqs = newseqs
-
-        ## call the _get_maf to match new array
-        newself._get_maf()
-        return newself
-
-    def calculcate_statistics(self):
-        """
-        A. The calculcate_statistics function computes mean nucleotide diversity, mean minor allele frequency, variant sites, 
-        variable sites
-        """     
-        # find mean nucleotide diversity: arr == arr[0] compares the first row against the rest of the rows. The similarity of 
-        # each column is calculated and the similarity values from each column are used to compute the mean. 
-        nd = np.var(self.arr == self.arr[0], axis=0).mean()
-    
-        # find mean minor allele frequency:  arr != arr[0] finds a number of differences between the first row against the rest
-        # of the rows. The number of differeces is calculated for each column and divided by the total length of each column. 
-        # The sum of the frequencies of all columns is used to compute the mean.
-        mf = np.mean(np.sum(self.arr != self.arr[0], axis=0) / self.arr.shape[0])
-   
-        # find variant sites: create boolean mask for whether any sites in a column is different from the first row. Sum the 
-        # number of columns with some variability 
-        var = np.any(self.arr != self.arr[0], axis=0).sum()
-    
-        # find variable sites: substract the number of variant sites from the total number of columns
-        inv = self.arr.shape[1] - var
-    
-        #Use Pandas to return all the values 
-        return pd.Series(
-            {"mean nucleotide diversity": nd,
-             "mean minor allele frequency": mf,
-             "invariant sites": inv,
-             "variable sites": var,
-            })
-    
+        if self.seqs.size:
+            nd = np.var(self.seqs == self.seqs[0], axis=0).mean()
+            mf = np.mean(
+                np.sum(self.seqs != self.seqs[0], axis=0) / self.seqs.shape[0])
+            inv = np.all(self.seqs == self.seqs[0], axis=0).sum()
+            var = self.seqs.shape[1] - inv
+            return pd.Series(
+                {"mean nucleotide diversity": nd,
+                 "mean minor allele frequency": mf,
+                 "invariant sites": inv,
+                 "variable sites": var,
+                })
+        else:
+            print("seqs array is empty")
